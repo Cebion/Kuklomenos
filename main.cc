@@ -297,59 +297,68 @@ void drawInfo(SDL_Surface* surface, GameState* gameState,
 	GameClock& gameClock, float observedFPS)
 {
     int shownFPS = int(round(observedFPS));
-    char fpsStr[5+10+9];
-    snprintf(fpsStr, 5+10+9, "fps: %d/%d%s", shownFPS,
+
+    // Slightly larger buffers to avoid overflow
+    char fpsStr[64]; // Increased buffer size
+    int fpsStrLen = snprintf(fpsStr, sizeof(fpsStr), "fps: %d/%d%s", shownFPS,
 	    settings.fps, gameClock.paused ? " [Paused]" : "");
 
-    char ratingStr[8+20+7+3];
-    snprintf(ratingStr, 8+20+7+3, "rating: %.1f %s (%s)",
+    char ratingStr[64]; // Increased buffer size
+    int ratingStrLen = snprintf(ratingStr, sizeof(ratingStr), "rating: %.1f %s (%s)",
 	    gameState->rating, ratingString((int)(gameState->rating)),
 	    speedStringShort(gameState->speed));
 
-    char rateStr[6+5+10];
-    snprintf(rateStr, 6+5+10, "speed: %d.%d%s", gameClock.rate/1000,
+    char rateStr[64]; // Increased buffer size
+    int rateStrLen = snprintf(rateStr, sizeof(rateStr), "speed: %d.%d%s", gameClock.rate/1000,
 	    (gameClock.rate%1000)/100, settings.debug ? " [*DEBUG*]" : "");
 
-    // if not enough room, try short version; if still too long don't display:
-    if ((int)strlen(fpsStr) > screenGeom.infoMaxLength)
-	snprintf(fpsStr, 5+10+9, "F: %d%s", shownFPS,
+    // Handle possible truncation
+    if (fpsStrLen >= sizeof(fpsStr)) {
+        snprintf(fpsStr, sizeof(fpsStr), "F: %d%s", shownFPS,
 		gameClock.paused ? " [P]" : "" );
-    if ((int)strlen(fpsStr) > screenGeom.infoMaxLength)
-	*fpsStr = '\0';
-
-    if ((int)strlen(ratingStr) > screenGeom.infoMaxLength)
-	snprintf(ratingStr, 8+20+7+5, "R: %.1f (%s)", gameState->rating,
-		speedStringShort(gameState->speed));
-    if ((int)strlen(ratingStr) > screenGeom.infoMaxLength)
-	*ratingStr = '\0';
-
-    if ((int)strlen(rateStr) > screenGeom.infoMaxLength)
-	snprintf(rateStr, 6+5+9, "S: %d.%d%s", gameClock.rate/1000,
-		(gameClock.rate%1000)/100, settings.debug ? " [D]" : "");
-    if ((int)strlen(rateStr) > screenGeom.infoMaxLength)
-	*rateStr = '\0';
-
-    gfxPrimitivesSetFont(fontSmall,7,13);
-
-    int line = 0;
-    if (settings.showFPS)
-	stringColor(surface,
-		screenGeom.info.x, screenGeom.info.y+15*line++,
-		fpsStr, 0xffffffff);
-
-
-    if (screenGeom.infoMaxLines > line)
-    {
-	stringColor(surface,
-		screenGeom.info.x, screenGeom.info.y+15*line++,
-		ratingStr, 0xffffffff);
+    }
+    if (fpsStrLen >= sizeof(fpsStr)) {
+        *fpsStr = '\0'; // Truncate if still too long
     }
 
-    if ( (settings.debug || gameClock.rate != rateOfSpeed(gameState->speed))
-	    && screenGeom.infoMaxLines > line)
-	stringColor(surface,
-		screenGeom.info.x, screenGeom.info.y+15*line++,
-		rateStr, 0xffffffff);
+    if (ratingStrLen >= sizeof(ratingStr)) {
+        snprintf(ratingStr, sizeof(ratingStr), "R: %.1f (%s)", gameState->rating,
+		speedStringShort(gameState->speed));
+    }
+    if (ratingStrLen >= sizeof(ratingStr)) {
+        *ratingStr = '\0'; // Truncate if still too long
+    }
+
+    if (rateStrLen >= sizeof(rateStr)) {
+        snprintf(rateStr, sizeof(rateStr), "S: %d.%d%s", gameClock.rate/1000,
+		(gameClock.rate%1000)/100, settings.debug ? " [D]" : "");
+    }
+    if (rateStrLen >= sizeof(rateStr)) {
+        *rateStr = '\0'; // Truncate if still too long
+    }
+
+    // Set font for text rendering
+    gfxPrimitivesSetFont(fontSmall,7,13);
+
+    // Render the info lines
+    int line = 0;
+    if (settings.showFPS) {
+        stringColor(surface,
+            screenGeom.info.x, screenGeom.info.y + 15 * line++,
+            fpsStr, 0xffffffff);
+    }
+
+    if (screenGeom.infoMaxLines > line) {
+        stringColor(surface,
+            screenGeom.info.x, screenGeom.info.y + 15 * line++,
+            ratingStr, 0xffffffff);
+    }
+
+    if ((settings.debug || gameClock.rate != rateOfSpeed(gameState->speed)) && screenGeom.infoMaxLines > line) {
+        stringColor(surface,
+            screenGeom.info.x, screenGeom.info.y + 15 * line++,
+            rateStr, 0xffffffff);
+    }
 }
 
 void drawSplash(SDL_Surface* surface)
